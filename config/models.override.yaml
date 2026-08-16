@@ -1,0 +1,64 @@
+# DEV/TEST override — NEVER used in production.
+# Points every department at one tiny model so the graph can be exercised
+# on a laptop without downloading the full 8 GB model set.
+# Production on the A1 uses config/models.yaml.
+router:
+  name: qwen2.5:0.5b
+  keep_alive: -1
+  temperature: 0.0
+  max_tokens: 2048
+  fallback: []
+
+main:
+  name: qwen2.5:0.5b
+  keep_alive: -1
+  temperature: 0.7
+  max_tokens: 4096
+  fallback: [router]
+
+coder:
+  name: qwen2.5:0.5b
+  keep_alive: 300
+  temperature: 0.2
+  max_tokens: 4096
+  fallback: [main, router]
+
+reasoner:
+  name: qwen2.5:0.5b
+  keep_alive: 300
+  temperature: 0.6
+  max_tokens: 4096
+  fallback: [main, router]
+
+vision:
+  name: qwen2.5:0.5b
+  keep_alive: 300
+  temperature: 0.3
+  max_tokens: 4096
+  fallback: [main, router]
+
+embeddings:
+  name: nomic-embed-text:latest
+  keep_alive: -1
+  temperature: 0
+  max_tokens: null
+  fallback: []
+
+routing:
+  quick_query: main
+  system: main
+  comms: main
+  knowledge: main
+  memory: main
+  coding: coder
+  debug: coder
+  git: coder
+  deploy: coder
+  complex_plan: reasoner
+  math: reasoner
+  deep_analysis: reasoner
+  summary: reasoner
+  image_analysis: vision
+  screen_capture: vision
+  camera_view: vision
+  unknown: main

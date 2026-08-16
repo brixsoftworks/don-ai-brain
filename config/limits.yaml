@@ -1,0 +1,15 @@
+# Circuit breakers + runtime limits (docs/component-1 §7).
+# All tunable without code changes.
+
+limits:
+  MAX_ITERATIONS: 15
+  MAX_TOKENS_PER_TASK: 30000
+  TOOL_TIMEOUT_SECONDS: 60
+  TOOL_OUTPUT_CAP_BYTES: 8192
+  OLLAMA_TIMEOUT_GEN_SECONDS: 60
+  OLLAMA_TIMEOUT_CONNECT_SECONDS: 30
+  INTERRUPT_TIMEOUT_HOURS: 24
+  CHAT_LOG_RETENTION_DAYS: 90
+
+ollama:
+  host: "http://localhost:11434"

@@ -1,0 +1,50 @@
+[project]
+name = "don"
+version = "0.1.0"
+description = "DON — a fully-local personal AI agent (LangGraph + Ollama). Private, JARVIS-style, ask-before-everything."
+requires-python = ">=3.11"
+dependencies = [
+    "langgraph>=0.4",
+    "langchain>=0.3",
+    "langchain-community>=0.3",
+    "langchain-core>=0.3",
+    "ollama>=0.4",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+# Incremental — enable tooling as components land (docs/component-5.md).
+tools = [
+    "duckduckgo-search",
+    "crawl4ai",
+    "wikipedia-api",
+    "feedparser",
+    "yt-dlp",
+    "python-mpd2",
+    "paho-mqtt",
+    "psutil",
+    "opendesk[core,mcp,remote]",
+]
+ingest = [
+    "docling",
+    "markitdown",
+    "chromadb",
+]
+voice = [
+    "kokoro",
+    "kokoro-onnx",
+    "heed-wakeword",
+]
+dev = [
+    "pytest",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["core*", "models*", "tools*", "ingest*", "memory*", "server*", "voice*", "bridge*", "trace*", "retrieval*", "tests*"]

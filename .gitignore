@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Secrets & local state — NEVER commit
+config/.env
+.env
+*.pem
+*.key
+
+# Runtime data (stays on the A1, never in git)
+jarvishome/
+*.db
+*.sqlite
+*.sqlite3
+vectordb/
+
+# OS junk
+.DS_Store
