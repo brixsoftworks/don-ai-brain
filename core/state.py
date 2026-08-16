@@ -22,6 +22,9 @@ class AgentState(TypedDict, total=False):
     model_route: str                         # set by route_model
     # --- execution ---
     tool_results: list                       # outputs fed back to LLM
+    tool_blacklist: list                     # tools disabled this conversation
+    approved_calls: dict                     # {tool_call_id: bool} from guard
+    cannot_use: list                         # tools the operator rejected (re-plan)
     pending_action: dict                     # {tool, args, reason} for guard
     iterations: int                          # loop counter (circuit breaker)
     tokens_used: int                         # token budget counter

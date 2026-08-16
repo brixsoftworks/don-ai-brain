@@ -1,0 +1,70 @@
+# Tool enable/disable + danger overrides + sandbox params.
+# No code edits needed to gate tools. See docs/component-5 §5, §7.
+#
+# danger override: "read" | "action" | "destructive" (config beats code default)
+
+tools:
+  web_search:
+    enabled: true
+    danger: read
+  web_extract:
+    enabled: false          # needs crawl4ai (installs with `pip install -e .[tools]`)
+    danger: read
+  sys_stats:
+    enabled: true
+    danger: read
+  shell:
+    enabled: true
+    danger: destructive
+    sandbox:
+      deny_list: ["rm -rf", "mkfs", "sudo", "shutdown", "reboot", "curl|sh", "> /dev/sda", ":(){", "mkfs.", "rmdir /", "dd if="]
+      workdir: ~/jarvishome
+  file_read:
+    enabled: true
+    danger: read
+    sandbox:
+      root: ~/jarvishome
+  file_write:
+    enabled: true
+    danger: action
+    sandbox:
+      root: ~/jarvishome
+  file_list:
+    enabled: true
+    danger: read
+    sandbox:
+      root: ~/jarvishome
+  memory_write:
+    enabled: true
+    danger: action
+  memory_search:
+    enabled: true
+    danger: read
+  note_capture:
+    enabled: true
+    danger: action
+  todo_add:
+    enabled: true
+    danger: action
+  todo_list:
+    enabled: true
+    danger: read
+  todo_done:
+    enabled: true
+    danger: action
+  tts_trigger:
+    enabled: false           # voice pipeline (component-15) not built yet
+    danger: action
+  device_notify:
+    enabled: false           # device bridge (component-16) not built yet
+    danger: action
+
+sandbox:
+  jail_root: ~/jarvishome
+  max_output_chars: 8192
+  shell_timeout_seconds: 60
+  tool_timeout_seconds: 60
+  thread_pool_size: 4
+  retry_tools: ["web_search"]
+  retry_count: 1
+  retry_backoff_seconds: 2

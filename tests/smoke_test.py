@@ -19,6 +19,7 @@ def main():
     graph = build_graph(settings=settings, chatlog=ChatLog(db_path))
     print("graph compiled:", type(graph).__name__)
 
+    config = {"configurable": {"thread_id": "smoke"}}
     out = graph.invoke(
         {
             "messages": [HumanMessage(content="Hello DON, say hi in one short line.")],
@@ -26,7 +27,8 @@ def main():
             "device": "laptop",
             "iterations": 0,
             "tokens_used": 0,
-        }
+        },
+        config,
     )
     print("task_type:", out.get("task_type"))
     print("model_route:", out.get("model_route"))

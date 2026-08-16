@@ -90,7 +90,7 @@ class OllamaClient:
             role = message.get("role", "user")
             return {"role": role, "content": message.get("content", "")}
         mtype = getattr(message, "type", "human")
-        role = {"human": "user", "ai": "assistant", "system": "system"}.get(mtype, "user")
+        role = {"human": "user", "ai": "assistant", "system": "system", "tool": "tool"}.get(mtype, "user")
         return {"role": role, "content": getattr(message, "content", "")}
 
     def invoke(
@@ -99,13 +99,18 @@ class OllamaClient:
         messages: list[dict],
         images: list[str] | None = None,
         temperature: float | None = None,
+        tools: list[dict] | None = None,
     ) -> dict:
         """Chat completion for a department, walking its fallback chain.
 
         Accepts plain dicts ({"role", "content"}) or LangChain BaseMessages.
+        `tools` are Ollama function schemas ({"type": "function", ...}); the
+        raw model message is returned as `message` so callers can read
+        native `tool_calls`.
 
         Returns {"content": str, "model": str, "dept": str, "prompt_eval_count": int,
-                 "eval_count": int, "fallback_from": str | None}
+                 "eval_count": int, "fallback_from": str | None,
+                 "message": dict (raw), "tool_calls": list}
         Raises RuntimeError if the whole chain fails.
         """
         normalized = [self._to_ollama_msg(m) for m in messages]
@@ -125,14 +130,19 @@ class OllamaClient:
                     payload["options"]["num_predict"] = candidate.max_tokens
                 if images:
                     payload["images"] = images
+                if tools:
+                    payload["tools"] = tools
                 resp = self._client.chat(**payload)
+                msg = resp.get("message", {})
                 out = {
-                    "content": resp["message"]["content"],
+                    "content": msg.get("content", ""),
                     "model": candidate.name,
                     "dept": dept,
                     "prompt_eval_count": resp.get("prompt_eval_count", 0),
                     "eval_count": resp.get("eval_count", 0),
                     "fallback_from": label if label.startswith("fallback") else None,
+                    "message": msg,
+                    "tool_calls": msg.get("tool_calls") or [],
                 }
                 if label.startswith("fallback"):
                     log.warning("model fallback for dept=%s -> %s", dept, candidate.name)
