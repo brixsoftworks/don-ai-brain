@@ -7,6 +7,7 @@ Collections: knowledge (docs), chat (conversations), memory (facts), tools.
 from __future__ import annotations
 
 import logging
+import threading
 from pathlib import Path
 
 import chromadb
@@ -33,6 +34,7 @@ class VectorStore:
         self._client = chromadb.PersistentClient(
             path=str(path), settings=ChromaSettings(anonymized_telemetry=False)
         )
+        self._lock = threading.RLock()
         self.collections = {}
         for name in COLLECTIONS:
             cfg = self.config["collections"][name]
@@ -64,18 +66,21 @@ class VectorStore:
         cfg = self.config["collections"][collection]
         self._check_dims(vectors, cfg["dim"])
         coll = self.collections[collection]
-        coll.upsert(ids=ids, embeddings=vectors, documents=documents, metadatas=metadatas)
+        with self._lock:
+            coll.upsert(ids=ids, embeddings=vectors, documents=documents, metadatas=metadatas)
         return len(ids)
 
     def search(self, collection: str, query_vector: list[float], k: int = 4,
                filters: dict | None = None, threshold: float | None = None) -> list[dict]:
         """Similarity + optional metadata filter. Returns [{id, doc, meta, score}]."""
         where = filters if filters else None
-        res = self.collections[collection].query(
-            query_embeddings=[query_vector],
-            n_results=max(1, k),
-            where=where,
-        )
+        coll = self.collections[collection]
+        with self._lock:
+            res = coll.query(
+                query_embeddings=[query_vector],
+                n_results=max(1, k),
+                where=where,
+            )
         out = []
         ids = (res.get("ids") or [[]])[0]
         docs = (res.get("documents") or [[]])[0]
@@ -91,11 +96,13 @@ class VectorStore:
     def delete(self, collection: str, where: dict) -> int:
         """Delete by metadata filter (e.g. {"doc_id": ...})."""
         coll = self.collections[collection]
-        result = coll.delete(where=where)
+        with self._lock:
+            result = coll.delete(where=where)
         return result if isinstance(result, int) else 0
 
     def count(self, collection: str) -> int:
-        return self.collections[collection].count()
+        with self._lock:
+            return self.collections[collection].count()
 
     def upsert_big(self, collection: str, rows: list[dict], k: int = 4) -> None:
         """Idempotent batch helper for {id, vector, doc, meta} rows."""

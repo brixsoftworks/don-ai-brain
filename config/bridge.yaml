@@ -1,0 +1,10 @@
+# Device bridge config (docs/component-16).
+bind_host: 127.0.0.1        # bind to tailscale IP on the A1, never 0.0.0.0
+port: 8080
+heartbeat_seconds: 30
+idle_fade_seconds: 30
+approval_timeout_hours: 24
+push:
+  ntfy_topic: don-alerts
+  ntfy_url: https://ntfy.sh
+  laptop_cmd: notify-send

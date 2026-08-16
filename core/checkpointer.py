@@ -5,6 +5,7 @@ See docs/component-1 §6 (checkpointer) and §6.1 (chat_log table).
 from __future__ import annotations
 
 import sqlite3
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -44,24 +45,27 @@ class ChatLog:
         db_path = Path(db_path)
         self.db_path = db_path
         db_path.parent.mkdir(parents=True, exist_ok=True)
-        self.conn = sqlite3.connect(str(db_path))
+        self._lock = threading.Lock()
+        self.conn = sqlite3.connect(str(db_path), check_same_thread=False)
         self.conn.executescript(self.SCHEMA)
 
     def append(self, *, thread_id: str, role: str, content: str,
                tool_calls: str | None = None, tool_results: str | None = None) -> int:
-        cur = self.conn.execute(
-            "INSERT INTO chat_log (thread_id, ts, role, content, tool_calls, tool_results)"
-            " VALUES (?, ?, ?, ?, ?, ?)",
-            (thread_id, datetime.now(timezone.utc).isoformat(), role, content, tool_calls, tool_results),
-        )
-        self.conn.commit()
-        return cur.lastrowid
+        with self._lock:
+            cur = self.conn.execute(
+                "INSERT INTO chat_log (thread_id, ts, role, content, tool_calls, tool_results)"
+                " VALUES (?, ?, ?, ?, ?, ?)",
+                (thread_id, datetime.now(timezone.utc).isoformat(), role, content, tool_calls, tool_results),
+            )
+            self.conn.commit()
+            return cur.lastrowid
 
     def iter_thread(self, thread_id: str, limit: int = 500):
-        rows = self.conn.execute(
-            "SELECT ts, role, content FROM chat_log WHERE thread_id = ? ORDER BY id LIMIT ?",
-            (thread_id, limit),
-        ).fetchall()
+        with self._lock:
+            rows = self.conn.execute(
+                "SELECT ts, role, content FROM chat_log WHERE thread_id = ? ORDER BY id LIMIT ?",
+                (thread_id, limit),
+            ).fetchall()
         return [{"ts": r[0], "role": r[1], "content": r[2]} for r in rows]
 
     def close(self) -> None:

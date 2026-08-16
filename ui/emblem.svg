@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="DON emblem">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ff2233" stop-opacity="0.85"/>
+      <stop offset="60%" stop-color="#b30015" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#0a0002" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff5b6b"/>
+      <stop offset="100%" stop-color="#7a000e"/>
+    </linearGradient>
+  </defs>
+  <circle cx="60" cy="60" r="55" fill="url(#glow)" id="halo"/>
+  <g stroke="url(#edge)" stroke-width="4" fill="none" stroke-linejoin="round">
+    <polygon points="60,8 108,60 60,112 12,60" id="frame"/>
+    <polygon points="60,32 84,60 60,88 36,60"/>
+  </g>
+  <circle cx="60" cy="60" r="10" fill="#ff2233" id="core"/>
+</svg>

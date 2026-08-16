@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a0002">
+<title>DON</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="emblem.svg">
+</head>
+<body class="state-idle">
+  <main id="overlay">
+
+    <section id="emblem">
+      <img src="emblem.svg" alt="DON emblem" id="glyph">
+      <p id="statuschip">idle</p>
+    </section>
+
+    <canvas id="waveform" width="600" height="64"></canvas>
+
+    <section id="transcript" aria-live="polite"></section>
+
+    <section id="toolline" class="hidden"></section>
+
+    <section id="approvalcard" class="hidden" role="dialog" aria-label="approval required">
+      <p id="approval-title">DON wants to take action.</p>
+      <ul id="approval-actions"></ul>
+      <div id="approval-buttons">
+        <button id="btn-approve" class="approve">Approve</button>
+        <button id="btn-reject" class="reject">Reject</button>
+      </div>
+    </section>
+
+    <form id="textbar" autocomplete="off">
+      <input id="textinput" type="text" placeholder="type to DON…" maxlength="2000" aria-label="message">
+      <button type="submit" id="sendbtn">▶</button>
+    </form>
+
+  </main>
+<script src="app.js"></script>
+</body>
+</html>

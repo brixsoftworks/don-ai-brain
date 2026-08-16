@@ -1,0 +1,7 @@
+# Proactive DON jobs (docs/component-16 §7). Each fires into the main graph
+# with source=scheduler; the same guard rules apply.
+jobs:
+  - name: morning-briefing
+    cron: "07:00"
+    thread_id: briefing
+    prompt: "Give the operator a quick morning briefing: weather today, any upcoming reminders or to-dos due, and one interesting fact."
