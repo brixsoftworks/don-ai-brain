@@ -30,5 +30,6 @@ class AgentState(TypedDict, total=False):
     tokens_used: int                         # token budget counter
     # --- memory ---
     memory: dict                             # facts pulled from long-term store
+    retrieval_context: str                   # pre-fetched [CONTEXT] blocks
     # --- output ---
     reply: str                               # final response for responder

@@ -28,14 +28,21 @@ TOOL_MODULES: dict[str, str] = {
     "file_list": "tools.system.tools",
     "web_search": "tools.web.tools",
     "weather": "tools.web.tools",
-    "memory_write": "tools.memory.tools",
-    "memory_search": "tools.memory.tools",
     "note_capture": "tools.memory.tools",
     "todo_add": "tools.memory.tools",
     "todo_list": "tools.memory.tools",
     "todo_done": "tools.memory.tools",
     "tts_trigger": "tools.internal.tools",
     "device_notify": "tools.internal.tools",
+}
+
+# Factory-built tools registered at app wiring time (memory/, retrieval/).
+FACTORY_TOOLS: dict[str, dict] = {
+    "remember": {"danger": "action", "source": "custom:memory"},
+    "set_preference": {"danger": "action", "source": "custom:memory"},
+    "search_memory": {"danger": "read", "source": "custom:memory"},
+    "forget_memory": {"danger": "destructive", "source": "custom:memory"},
+    "search_notes": {"danger": "read", "source": "custom:retrieval"},
 }
 
 DEFAULT_DANGER: dict[str, str] = {
@@ -46,8 +53,6 @@ DEFAULT_DANGER: dict[str, str] = {
     "file_list": "read",
     "web_search": "read",
     "weather": "read",
-    "memory_write": "action",
-    "memory_search": "read",
     "note_capture": "action",
     "todo_add": "action",
     "todo_list": "read",
@@ -64,8 +69,6 @@ SOURCES: dict[str, str] = {
     "file_list": "custom",
     "web_search": "langchain-community:duckduckgo",
     "weather": "custom:wttr.in",
-    "memory_write": "custom",
-    "memory_search": "custom",
     "note_capture": "custom",
     "todo_add": "custom",
     "todo_list": "custom",
@@ -121,6 +124,23 @@ class ToolRegistry:
             )
 
     # ---------------------------------------------------------------- queries
+
+    def register(self, tool: BaseTool, *, danger: str = "read", source: str = "custom") -> None:
+        """Register a factory-built tool (created at app wiring time)."""
+        name = tool.name
+        cfg = self.config.get("tools", {}).get(name, {})
+        effective_danger = cfg.get("danger", danger)
+        enabled = bool(cfg.get("enabled", True))
+        self._tools[name] = tool
+        self._specs[name] = ToolSpec(
+            name=name,
+            description=tool.description,
+            args_schema=getattr(tool, "args_schema", None),
+            danger=effective_danger,
+            source=source,
+            enabled=enabled,
+            tool=tool,
+        )
 
     def specs(self) -> list[ToolSpec]:
         return list(self._specs.values())

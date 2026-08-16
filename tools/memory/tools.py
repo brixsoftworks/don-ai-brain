@@ -1,55 +1,18 @@
-"""Memory & personal tools: long-term memory, notes vault, todo list.
+"""Memory & personal tools: notes vault, todo list.
 
-Backed by a simple JSON/SQLite store for the foundation; the vector-store
-backing lands with components 9–12.
+Vector-backed long-term memory (remember / search_memory / forget_memory /
+set_preference) lives in memory/tools.py + retrieval/tools.py.
 """
 from __future__ import annotations
 
-import json
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 
 from langchain_core.tools import tool
 
 HOME = Path.home() / "jarvishome"
-MEMORY_FILE = HOME / "memory.json"
 TODO_DB = HOME / "todo.db"
-
-MEMORY_FILE.parent.mkdir(parents=True, exist_ok=True)
-
-
-def _load_memory() -> list[dict]:
-    if not MEMORY_FILE.exists():
-        return []
-    try:
-        return json.loads(MEMORY_FILE.read_text())
-    except json.JSONDecodeError:
-        return []
-
-
-def _save_memory(items: list[dict]) -> None:
-    MEMORY_FILE.write_text(json.dumps(items, indent=2, ensure_ascii=False))
-
-
-@tool
-def memory_write(fact: str) -> str:
-    """Permanently store a personal fact about the user (e.g. 'user dislikes cilantro')."""
-    items = _load_memory()
-    items.append({"fact": fact, "ts": datetime.now(timezone.utc).isoformat()})
-    _save_memory(items)
-    return f"remembered: {fact}"
-
-
-@tool
-def memory_search(topic: str) -> str:
-    """Search stored personal facts by keyword/topic."""
-    items = _load_memory()
-    hits = [m for m in items if topic.lower() in m["fact"].lower()]
-    if not hits:
-        return "(no matching memories)"
-    return "\n".join(f"- {m['fact']}" for m in hits[-10:])
-
 
 NOTES_FILE = HOME / "notes" / "notes.md"
 

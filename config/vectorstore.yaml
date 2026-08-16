@@ -1,0 +1,16 @@
+# Vector store config (docs/component-10).
+path: ~/jarvishome/vectordb
+collections:
+  knowledge:
+    dim: 1024
+    metric: cosine
+  chat:
+    dim: 1024
+    metric: cosine
+  memory:
+    dim: 1024
+    metric: cosine
+  tools:
+    dim: 1024
+    metric: cosine
+default_k: 4

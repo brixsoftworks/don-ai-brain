@@ -1,0 +1,12 @@
+# Retrieval config (docs/component-11 §7).
+default_k: 4
+budget_tokens: 800          # hard cap on retrieval context per task
+low_confidence_threshold: 0.5
+prefetch:
+  knowledge_k: 2
+  memory_k: 2
+collections:
+  knowledge: knowledge
+  chat: chat
+  memory: memory
+  tools: tools

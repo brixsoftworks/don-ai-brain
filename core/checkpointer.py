@@ -42,6 +42,7 @@ class ChatLog:
 
     def __init__(self, db_path: Path | str = DEFAULT_DB):
         db_path = Path(db_path)
+        self.db_path = db_path
         db_path.parent.mkdir(parents=True, exist_ok=True)
         self.conn = sqlite3.connect(str(db_path))
         self.conn.executescript(self.SCHEMA)

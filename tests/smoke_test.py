@@ -1,40 +1,34 @@
-"""Smoke test — runs one input through the whole graph with the dev override."""
-import os
+"""Answer-only smoke test — no tools, plain reply through the whole graph."""
 import sys
-import tempfile
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, "/home/mullainathan/Documents/Coding/Projects/pa ai agent")
 
 from langchain_core.messages import HumanMessage
 
-from core.checkpointer import ChatLog
-from core.graph import build_graph
-from core.settings import Settings
+from tests._helpers import temp_graph, thread_config
 
 
 def main():
-    db_path = tempfile.mktemp(suffix=".db")
-    settings = Settings()
-
-    graph = build_graph(settings=settings, chatlog=ChatLog(db_path))
-    print("graph compiled:", type(graph).__name__)
-
-    config = {"configurable": {"thread_id": "smoke"}}
-    out = graph.invoke(
-        {
-            "messages": [HumanMessage(content="Hello DON, say hi in one short line.")],
-            "user_id": "pa",
-            "device": "laptop",
-            "iterations": 0,
-            "tokens_used": 0,
-        },
-        config,
-    )
-    print("task_type:", out.get("task_type"))
-    print("model_route:", out.get("model_route"))
-    print("iterations:", out.get("iterations"))
-    print("tokens_used:", out.get("tokens_used"))
-    print("reply:", out.get("reply"))
+    graph, cleanup = temp_graph()
+    try:
+        print("graph compiled:", type(graph).__name__)
+        out = graph.invoke(
+            {
+                "messages": [HumanMessage(content="Hello DON, say hi in one short line.")],
+                "user_id": "pa",
+                "device": "laptop",
+                "iterations": 0,
+                "tokens_used": 0,
+            },
+            thread_config("smoke"),
+        )
+        print("task_type:", out.get("task_type"))
+        print("model_route:", out.get("model_route"))
+        print("iterations:", out.get("iterations"))
+        print("tokens_used:", out.get("tokens_used"))
+        print("reply:", out.get("reply"))
+    finally:
+        cleanup()
 
 
 if __name__ == "__main__":

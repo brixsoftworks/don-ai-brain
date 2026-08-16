@@ -1,6 +1,6 @@
 """core/graph.py — the DON brain: nodes + wiring.
 
-Loop: classify → route → agent ⇄ guard ⇄ tool_node → respond.
+Loop: classify → route → [retrieve pre-fetch] → agent ⇄ guard ⇄ tool → respond.
 Supervisor pattern per docs/component-13 §4; tool loop per component-1 §3–4.
 """
 from __future__ import annotations
@@ -15,6 +15,7 @@ from core.nodes.agent import agent_loop
 from core.nodes.classify import classify_input
 from core.nodes.guard import guard
 from core.nodes.respond import responder
+from core.nodes.retrieve import retrieve
 from core.nodes.router import route_model
 from core.nodes.toolnode import tool_node
 from core.prompts import PromptBank
@@ -22,9 +23,15 @@ from core.settings import Settings
 from core.state import AgentState
 from core.toolruntime.bigtool_retriever import BigToolRetriever
 from core.toolruntime.executor import ToolExecutor
+from ingest.embedder import Embedder
+from memory.store import FactStore
+from memory.tools import build_memory_tools
+from memory.vectorstore import VectorStore
 from models.ollama_client import OllamaClient
 from models.registry import ModelRegistry, load_registry
 from models.router import ModelRouter
+from retrieval.retriever import Retriever
+from retrieval.tools import build_retrieval_tools
 from tools.registry import ToolRegistry
 
 
@@ -42,6 +49,9 @@ def build_graph(
     settings: Settings | None = None,
     registry: ModelRegistry | None = None,
     tool_registry: ToolRegistry | None = None,
+    vectorstore: VectorStore | None = None,
+    embedder: Embedder | None = None,
+    retriever: Retriever | None = None,
     checkpointer=None,
 ):
     """Assemble the compiled StateGraph. Callables are wired via partials."""
@@ -53,16 +63,27 @@ def build_graph(
                                     connect_timeout_s=settings.ollama_timeout_connect_seconds)
     chatlog = chatlog or ChatLog()
     tool_registry = tool_registry or ToolRegistry()
-    executor = ToolExecutor(
-        pool_size=4, default_timeout=settings.tool_timeout_seconds
-    )
-    bigtool = BigToolRetriever(client, tool_registry)
+
+    vectorstore = vectorstore or VectorStore()
+    embedder = embedder or Embedder(client)
+    facts = FactStore(vectorstore)
+    retriever = retriever or Retriever(vectorstore, embedder)
+
+    # register factory-built memory/retrieval tools, then let BigTool see them
+    for t in build_memory_tools(facts, embedder):
+        tool_registry.register(t, danger="action", source="custom:memory")
+    for t in build_retrieval_tools(retriever, facts):
+        tool_registry.register(t, danger="read", source="custom:retrieval")
+
+    executor = ToolExecutor(pool_size=4, default_timeout=settings.tool_timeout_seconds)
+    bigtool = BigToolRetriever(client, tool_registry, vs=vectorstore, embedder=embedder)
     router = ModelRouter(registry)
 
     g = StateGraph(AgentState)
 
     g.add_node("classify", partial(classify_input, client=client, prompts=prompts))
     g.add_node("route", partial(route_model, router=router, client=client))
+    g.add_node("retrieve", partial(retrieve, retriever=retriever))
     g.add_node("agent", partial(agent_loop, client=client, prompts=prompts,
                                 settings=settings, bigtool=bigtool))
     g.add_node("guard", partial(guard, prompts=prompts, registry=tool_registry))
@@ -73,7 +94,12 @@ def build_graph(
 
     g.add_edge(START, "classify")
     g.add_edge("classify", "route")
-    g.add_edge("route", "agent")
+    g.add_conditional_edges(
+        "route",
+        lambda s: s.get("task_type") in ("knowledge", "memory"),
+        {True: "retrieve", False: "agent"},
+    )
+    g.add_edge("retrieve", "agent")
     g.add_edge("agent", "guard")
     g.add_conditional_edges(
         "guard",

@@ -1,12 +1,9 @@
-"""BigTool retriever — semantic tool selection, drop-in for langgraph-bigtool.
+"""BigTool retriever — semantic tool selection on the Chroma `tools` collection.
 
-Runs before each agent_loop iteration: embeds the current query with the
-embeddings model and scores all registered tool descriptions by cosine
-similarity, returning the top-N tool names whose schemas get injected into
-DON's context.
-
-Interface: `retrieve(query, k) -> list[str]` — a later swap can back this
-with ChromaDB (docs/component-10) without touching callers.
+Runs before each agent_loop iteration: embeds the query with the embeddings
+model, searches the `tools` collection (seeded at startup from the registry),
+and returns the top-N tool names. Keyword scoring is a fallback when the
+store or embedder is unavailable. Drop-in replacement for langgraph-bigtool.
 
 See docs/component-6 §3.
 """
@@ -14,14 +11,12 @@ from __future__ import annotations
 
 import logging
 import re
-from functools import lru_cache
 
-from models.ollama_client import OllamaClient
+from ingest.embedder import Embedder
+from memory.vectorstore import VectorStore
 from tools.registry import ToolRegistry
 
 log = logging.getLogger("don.bigtool")
-
-KEYWORD_BONUS = 1.0
 
 
 def _cosine(a: list[float], b: list[float]) -> float:
@@ -34,36 +29,49 @@ def _cosine(a: list[float], b: list[float]) -> float:
 class BigToolRetriever:
     def __init__(
         self,
-        client: OllamaClient,
+        client,
         registry: ToolRegistry,
+        vs: VectorStore | None = None,
+        embedder: Embedder | None = None,
         k: int = 6,
-        embed_batch_size: int = 8,
     ):
         self.client = client
         self.registry = registry
+        self.vs = vs
+        self.embedder = embedder
         self.k = k
-        self.embed_batch_size = embed_batch_size
-        self.specs = registry.enabled_specs()
-        self.embeddings: dict[str, list[float]] = {}
-        self._index_built = False
+        self._seeded = False
 
-    # ---------------------------------------------------------------- index
+    # ---------------------------------------------------------------- seed
 
-    def build_index(self) -> None:
-        """Embed every enabled tool description once at startup."""
-        texts = []
-        for spec in self.specs:
-            texts.append(f"{spec.name}: {spec.description}")
-        for i in range(0, len(texts), self.embed_batch_size):
-            batch = texts[i : i + self.embed_batch_size]
-            try:
-                vecs = self.client.embed(batch)
-                for spec, vec in zip(self.specs[i : i + self.embed_batch_size], vecs):
-                    self.embeddings[spec.name] = vec
-            except Exception as exc:  # noqa: BLE001
-                log.warning("embedding batch %d failed: %s", i // self.embed_batch_size, exc)
-        self._index_built = bool(self.embeddings)
-        log.info("bigtool index built: %d tools embedded", len(self.embeddings))
+    def seed(self) -> None:
+        """Embed every enabled tool description into the Chroma `tools` collection."""
+        if self.vs is None or self.embedder is None:
+            log.info("bigtool: no vector store provided — keyword-only mode")
+            self._seeded = True
+            return
+        specs = self.registry.enabled_specs()
+        if self.vs.count("tools") >= len(specs):
+            self._seeded = True
+            return
+        docs = [f"{s.name}: {s.description}" for s in specs]
+        try:
+            vectors = self.embedder.embed(docs)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("bigtool seed embed failed: %s", exc)
+            self._seeded = True
+            return
+        rows = []
+        for spec, vec in zip(specs, vectors):
+            rows.append({
+                "id": spec.name,
+                "vector": vec,
+                "doc": f"{spec.name}: {spec.description}",
+                "meta": {"source": spec.source, "danger": spec.danger},
+            })
+        self.vs.upsert_big("tools", rows)
+        self._seeded = True
+        log.info("bigtool seeded: %d tools", len(specs))
 
     # -------------------------------------------------------------- retrieve
 
@@ -72,37 +80,38 @@ class BigToolRetriever:
         return {w for w in re.findall(r"[a-z_]{3,}", query.lower()) if len(w) > 3}
 
     def _keyword_score(self, name: str, desc: str, keywords: set[str]) -> float:
-        haystack = (name + " " + desc).lower()
-        return KEYWORD_BONUS * sum(1 for k in keywords if k in haystack)
+        hay = (name + " " + desc).lower()
+        return sum(1 for kw in keywords if kw in hay)
 
     def retrieve(self, query: str, k: int | None = None) -> list[str]:
-        """Top-k tool names for the query (semantic + keyword boost)."""
+        """Top-k tool names for the query (semantic search + keyword fallback)."""
         k = k or self.k
-        if not self._index_built:
-            self.build_index()
+        if not self._seeded:
+            self.seed()
         keywords = self._keywords(query)
 
-        if self.embeddings:
+        if self.vs is not None and self.embedder is not None:
             try:
-                qvec = self.client.embed_query(query)
+                qvec = self.embedder.embed_query(query)
+                hits = self.vs.search("tools", qvec, k=k * 2)
             except Exception as exc:  # noqa: BLE001
-                log.warning("embed_query failed, keyword-only fallback: %s", exc)
-                qvec = None
-            if qvec is not None:
-                scored = [
-                    (_cosine(qvec, self.embeddings[s.name])
-                     + self._keyword_score(s.name, s.description, keywords) * 0.15, s.name)
-                    for s in self.specs
-                ]
-                scored.sort(key=lambda x: x[0], reverse=True)
-                return [name for _, name in scored[:k]]
+                log.warning("bigtool search failed, keyword fallback: %s", exc)
+                hits = []
+            if hits:
+                boosted = sorted(
+                    hits,
+                    key=lambda h: h["score"] + 0.15 * self._keyword_score(h["id"], "", keywords),
+                    reverse=True,
+                )
+                return [h["id"] for h in boosted[:k]]
 
-        scored = [
-            (self._keyword_score(s.name, s.description, keywords), s.name)
-            for s in self.specs
-        ]
-        scored.sort(key=lambda x: x[0], reverse=True)
-        return [name for _, name in scored[:k]]
+        specs = self.registry.enabled_specs()
+        scored = sorted(
+            specs,
+            key=lambda s: self._keyword_score(s.name, s.description, keywords),
+            reverse=True,
+        )
+        return [s.name for s in scored[:k]]
 
     def tool_injections(self, query: str, k: int | None = None) -> list[dict]:
         """Tool metadata blocks to inject into the agent prompt."""

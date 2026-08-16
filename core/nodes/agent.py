@@ -102,12 +102,20 @@ def agent_loop(
         device=state.get("device", "laptop"),
         memory_context=str(state.get("memory") or ""),
     )
+    retrieval_ctx = state.get("retrieval_context") or ""
     tool_listing = "\n".join(
         f"- {t['name']} ({t['danger']}): {t['description']}" for t in tool_blocks
     )
+    context_block = ""
+    if retrieval_ctx.strip():
+        context_block = (
+            "\n\nRetrieved context (prefer this over guessing; if it doesn't "
+            "answer the question, say so honestly):\n" + retrieval_ctx
+        )
     system = type(system)(
         content=system.content
         + "\n\nAvailable tools for this task:\n" + tool_listing
+        + context_block
         + "\n\nReply with a tool call if you need to act. Otherwise answer directly."
     )
 

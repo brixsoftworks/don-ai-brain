@@ -35,9 +35,24 @@ tools:
     sandbox:
       root: ~/jarvishome
   memory_write:
-    enabled: true
+    enabled: false
     danger: action
   memory_search:
+    enabled: false
+    danger: read
+  remember:
+    enabled: true
+    danger: action
+  search_memory:
+    enabled: true
+    danger: read
+  set_preference:
+    enabled: true
+    danger: action
+  forget_memory:
+    enabled: true
+    danger: destructive
+  search_notes:
     enabled: true
     danger: read
   note_capture:
