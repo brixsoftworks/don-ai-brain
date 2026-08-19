@@ -30,7 +30,7 @@ jobs:
         cd don_mobile
         cp ../main.dart lib/main.dart
         flutter pub add flutter_background_service
-        flutter pub add speech_to_text
+        flutter pub add speech_to_text:^6.6.0
         flutter pub add web_socket_channel
         
         # Add permissions
