@@ -29,9 +29,9 @@ jobs:
         flutter create don_mobile --empty
         cd don_mobile
         cp ../main.dart lib/main.dart
-        flutter pub add 'flutter_background_service:^3.4.1'
-        flutter pub add 'speech_to_text:^6.5.1'
-        flutter pub add 'web_socket_channel:^2.4.4'
+        flutter pub add flutter_background_service
+        flutter pub add speech_to_text:6.6.0
+        flutter pub add web_socket_channel
         
         # Add permissions
         MANIFEST="android/app/src/main/AndroidManifest.xml"
