@@ -37,6 +37,10 @@ jobs:
         MANIFEST="android/app/src/main/AndroidManifest.xml"
         sed -i '/<application/i \    <uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.RECORD_AUDIO"/>\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>\n    <uses-permission android:name="android.permission.WAKE_LOCK"/>' $MANIFEST
         
+        # Fix Kotlin version conflicts
+        find android -type f \( -name "settings.gradle" -o -name "build.gradle" \) -exec sed -i 's/ext.kotlin_version = .*/ext.kotlin_version = '"'"'1.9.0'"'"'/g' {} +
+        find android -type f \( -name "settings.gradle" -o -name "build.gradle" \) -exec sed -i 's/org.jetbrains.kotlin.android" version "1.7.10"/org.jetbrains.kotlin.android" version "1.9.0"/g' {} +
+        
         # Build APK
         flutter build apk --release
 
