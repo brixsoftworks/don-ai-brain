@@ -1,0 +1,20 @@
+{
+  "name": "DON",
+  "short_name": "DON",
+  "description": "DON — your fully-local personal AI agent",
+  "start_url": "/",
+  "display": "fullscreen",
+  "background_color": "#0a0002",
+  "theme_color": "#0a0002",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "emblem.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities"],
+  "prefer_related_applications": false
+}

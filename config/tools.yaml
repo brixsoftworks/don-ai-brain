@@ -10,6 +10,15 @@ tools:
   web_extract:
     enabled: false          # needs crawl4ai (installs with `pip install -e .[tools]`)
     danger: read
+  browser_start:
+    enabled: true
+    danger: action
+  browser_execute:
+    enabled: true
+    danger: action
+  browser_close:
+    enabled: true
+    danger: action
   sys_stats:
     enabled: true
     danger: read
@@ -68,10 +77,98 @@ tools:
     enabled: true
     danger: action
   tts_trigger:
-    enabled: false           # voice pipeline (component-15) not built yet
+    enabled: false           # enabled once kokoro-onnx is installed (pip install kokoro-onnx)
     danger: action
   device_notify:
-    enabled: false           # device bridge (component-16) not built yet
+    enabled: true            # notify-send (laptop) + ntfy (android); set NTFY_TOPIC env var
+    danger: action
+  # screen control tools (Wayland: ydotool + XDG portal screenshots)
+  screenshot:
+    enabled: true
+    danger: read
+  screenshot_region:
+    enabled: true
+    danger: read
+  screenshot_window:
+    enabled: true
+    danger: read
+  mouse_click:
+    enabled: true
+    danger: action
+  mouse_double_click:
+    enabled: true
+    danger: action
+  mouse_move:
+    enabled: true
+    danger: action
+  mouse_drag:
+    enabled: true
+    danger: action
+  scroll:
+    enabled: true
+    danger: action
+  type_text:
+    enabled: true
+    danger: destructive
+  key_press:
+    enabled: true
+    danger: destructive
+  key_combo:
+    enabled: true
+    danger: destructive
+  window_list:
+    enabled: true
+    danger: read
+  window_focus:
+    enabled: true
+    danger: action
+  window_move:
+    enabled: true
+    danger: action
+  window_resize:
+    enabled: true
+    danger: action
+  window_close:
+    enabled: true
+    danger: action
+  open_url:
+    enabled: true
+    danger: action
+  open_app:
+    enabled: true
+    danger: action
+  open_file:
+    enabled: true
+    danger: action
+  clipboard_copy:
+    enabled: true
+    danger: action
+  clipboard_paste:
+    enabled: true
+    danger: read
+  screen_vision:
+    enabled: true
+    danger: read
+  screen_find_and_click:
+    enabled: true
+    danger: action
+  screen_type_and_submit:
+    enabled: true
+    danger: destructive
+  screen_tab_and_type:
+    enabled: true
+    danger: destructive
+  screen_uitars:
+    enabled: true
+    danger: destructive
+  screen_compose_email:
+    enabled: true
+    danger: action
+  screen_fill_form:
+    enabled: true
+    danger: action
+  screen_navigate_and_act:
+    enabled: true
     danger: action
 
 sandbox:

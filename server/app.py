@@ -1,85 +1,125 @@
-"""server/app.py — FastAPI hub: /ws, /api/v1, /ui mount.
-
-Binds to the Tailscale interface only (config/bridge.yaml). Every live
-envelope rides the WebSocket; short ops go over REST.
-See docs/component-16.
-"""
-from __future__ import annotations
-
+import asyncio
+import json
 import logging
-from pathlib import Path
+import os
+from typing import Dict, Any
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+from openai import AsyncOpenAI
 
-from bridge.envelope import Envelope, status_envelope
-from server.api import build_router
-from server.bridge import Bridge
-from server.devices import DeviceInfo, DeviceRegistry
-from server.ws import SessionManager
+logging.basicConfig(level=logging.INFO)
 
-log = logging.getLogger("don.server")
+app = FastAPI(title="DON Cloud Hub")
 
-UI_DIR = Path(__file__).resolve().parent.parent / "ui"
+# Mount the static directory to serve the mobile web UI
+app.mount("/ui", StaticFiles(directory="server/static", html=True), name="static")
 
+# Connected clients
+active_laptop: WebSocket | None = None
+active_phone: WebSocket | None = None
+pending_responses: Dict[str, asyncio.Future] = {}
 
-def create_app(graph=None, devices: DeviceRegistry | None = None):
-    sessions = SessionManager()
-    devices = devices or DeviceRegistry()
-    bridge = Bridge(graph, sessions)
+# Initialize OpenAI Client (using OpenRouter for free models)
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+if OPENROUTER_API_KEY:
+    client = AsyncOpenAI(
+        api_key=OPENROUTER_API_KEY,
+        base_url="https://openrouter.ai/api/v1"
+    )
+else:
+    client = None
+    logging.warning("OPENROUTER_API_KEY not found! LLM commands will fail.")
 
-    app = FastAPI(title="DON bridge")
-    app.state.sessions = sessions
-    app.state.devices = devices
-    app.state.bridge = bridge
+@app.websocket("/ws/laptop")
+async def laptop_endpoint(websocket: WebSocket):
+    global active_laptop
+    await websocket.accept()
+    active_laptop = websocket
+    logging.info("Laptop worker connected!")
+    try:
+        while True:
+            data = await websocket.receive_text()
+            payload = json.loads(data)
+            call_id = payload.get("id")
+            if call_id in pending_responses:
+                pending_responses[call_id].set_result(payload.get("result", ""))
+    except WebSocketDisconnect:
+        logging.info("Laptop worker disconnected.")
+        active_laptop = None
 
-    # ------------------------------------------------------------------ WS
+@app.websocket("/ws/phone")
+async def phone_endpoint(websocket: WebSocket):
+    global active_phone, active_laptop
+    await websocket.accept()
+    active_phone = websocket
+    logging.info("Phone connected!")
+    try:
+        while True:
+            data = await websocket.receive_text()
+            payload = json.loads(data)
+            
+            tool = payload.get("tool")
+            if tool == "voice_prompt":
+                prompt = payload.get("args", {}).get("prompt", "")
+                logging.info(f"Received voice prompt from phone: {prompt}")
+                
+                if active_laptop is None:
+                    await websocket.send_text("Laptop worker is offline.")
+                    continue
+                
+                if not client:
+                    await websocket.send_text("LLM API not configured.")
+                    continue
 
-    @app.websocket("/ws")
-    async def ws_endpoint(ws: WebSocket):
-        await ws.accept()
-        device_id = ws.query_params.get("device_id", "unknown")
-        sessions.connect(device_id, ws)
-        devices.register(DeviceInfo(device_id=device_id, type=ws.query_params.get("type", "laptop")))
-        try:
-            while True:
-                raw = await ws.receive_text()
-                env = Envelope.from_json(raw)
-                if env.type == "pong":
-                    await ws.send_text(Envelope(type="pong", device_id=device_id,
-                                                thread_id=env.thread_id).to_json())
-                elif env.type == "text":
-                    sessions.claim_thread(env.thread_id, device_id)
-                    await sessions.async_send(device_id, status_envelope(env.thread_id, "listening").to_json())
-                    result = await run_bridge(bridge.send_text, device_id, env.thread_id, env.payload.get("content", ""))
-                    if result.get("reply"):
-                        await sessions.async_send(device_id, Envelope(
-                            type="text", device_id=device_id, thread_id=env.thread_id,
-                            payload={"content": result["reply"], "final": True}).to_json())
-        except WebSocketDisconnect:
-            sessions.disconnect(device_id)
-            devices.set_offline(device_id)
-        except Exception as exc:  # noqa: BLE001
-            log.error("ws error: %s", exc)
-            sessions.disconnect(device_id)
-            devices.set_offline(device_id)
-
-    # ----------------------------------------------------------------- REST
-
-    app.include_router(build_router(bridge, sessions, devices))
-
-    # ------------------------------------------------------------------ UI
-
-    @app.get("/")
-    async def root():
-        return FileResponse(UI_DIR / "index.html")
-
-    app.mount("/ui", StaticFiles(directory=str(UI_DIR), html=True), name="ui")
-
-    return app
-
-
-async def run_bridge(fn, *args):
-    from starlette.concurrency import run_in_threadpool
-    return await run_in_threadpool(fn, *args)
+                # 1. Ask OpenRouter what terminal command to run
+                try:
+                    response = await client.chat.completions.create(
+                        model="openrouter/free",
+                        messages=[
+                            {"role": "system", "content": "You are a Linux terminal agent. Respond with ONLY a JSON object containing the exact bash command to fulfill the request. Example: {\"command\": \"date\"}. No other text or markdown is allowed."},
+                            {"role": "user", "content": prompt}
+                        ],
+                        temperature=0,
+                        max_tokens=150
+                    )
+                    content = response.choices[0].message.content.strip()
+                    
+                    # Try to extract JSON if the model added padding
+                    if "{" in content and "}" in content:
+                        content = content[content.find("{"):content.rfind("}")+1]
+                        
+                    try:
+                        data = json.loads(content)
+                        bash_command = data.get("command", content)
+                    except json.JSONDecodeError:
+                        bash_command = content.replace("```bash", "").replace("```", "").strip()
+                    
+                    logging.info(f"AI decided to run: {bash_command}")
+                    
+                    # 2. Forward execution command to the laptop
+                    call_id = f"cmd-{asyncio.get_event_loop().time()}"
+                    future = asyncio.get_event_loop().create_future()
+                    pending_responses[call_id] = future
+                    
+                    await active_laptop.send_text(json.dumps({
+                        "id": call_id,
+                        "tool": "run_command",
+                        "args": {"command": bash_command}
+                    }))
+                    
+                    # 3. Wait for laptop to execute
+                    result = await asyncio.wait_for(future, timeout=30.0)
+                    del pending_responses[call_id]
+                    
+                    # 4. Notify the phone
+                    await websocket.send_text(f"Executed: {bash_command[:50]}... Result: {str(result)[:50]}")
+                    
+                except Exception as e:
+                    logging.error(f"Error processing command: {e}")
+                    await websocket.send_text(f"Error: {e}")
+                    
+    except WebSocketDisconnect:
+        logging.info("Phone disconnected.")
+        active_phone = None

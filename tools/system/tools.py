@@ -14,10 +14,22 @@ DENY_LIST = ["rm -rf", "mkfs", "sudo", "shutdown", "reboot", "curl|sh", "> /dev/
 
 
 def _jail(path: str) -> Path:
-    p = Path(path).expanduser().resolve()
-    if not p.is_relative_to(JAIL_ROOT.resolve()):
-        raise PermissionError(f"path outside jail: {p}")
-    return p
+    p = Path(path).expanduser()
+    resolved = p.resolve()
+    jarvi = JAIL_ROOT.resolve()
+    # absolute path inside jail — use directly
+    if resolved.is_relative_to(jarvi):
+        return resolved
+    # allow symlinked paths (e.g. ~/jarvishome/Downloads -> ~/Downloads)
+    # by checking if the target is inside an allowed location
+    allowed_bases = [Path.home() / "Downloads", Path.home() / "Documents", Path("/tmp")]
+    for base in allowed_bases:
+        try:
+            resolved.relative_to(base.resolve())
+            return resolved
+        except ValueError:
+            continue
+    raise PermissionError(f"path outside jail: {resolved}")
 
 
 @tool
@@ -88,5 +100,8 @@ def file_list(path: str = "") -> str:
     p = _jail(path or ".")
     entries = sorted(p.iterdir())
     return "\n".join(
-        f"{'[d]' if e.is_dir() else '   '} {e.relative_to(JAIL_ROOT)}" for e in entries[:200]
+        f"{'[d]' if e.is_dir() else '   '} {e.name}" for e in entries[:200]
     )
+
+
+TOOLS = [sys_stats, shell, file_read, file_write, file_list]

@@ -4,36 +4,36 @@ See docs/component-1 §4.1.
 """
 from __future__ import annotations
 
-import json
 import logging
+import re
 
 from langchain_core.messages import AIMessage
 
+from core.parsing.router_parser import parse_task_classification
 from core.prompts import PromptBank
 from models.ollama_client import OllamaClient
 
 log = logging.getLogger("don.classify")
 
-VALID_TASK_TYPES = {
-    "quick_query", "system", "comms", "knowledge", "coding",
-    "complex_plan", "image_analysis", "unknown",
+# keyword heuristics when the router model misclassifies
+_KEYWORD_OVERRIDES: dict[str, list[str]] = {
+    "system": ["shell", "ffmpeg", "rename", "move", "delete", "copy", "mkdir",
+                "chmod", "install", "unzip", "tar", "wget", "curl", "docker",
+                "merge", "trim", "convert", "compress", "extract"],
+    "coding": ["script", "python", "code", "program", "function", "class",
+               "import", "debug", "git", "commit", "push", "pull"],
 }
 
 
-def _extract_json(text: str) -> dict | None:
-    """Best-effort JSON extraction: strict -> fenced -> first brace pair."""
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        pass
-    start = text.find("{")
-    end = text.rfind("}")
-    if start != -1 and end > start:
-        try:
-            return json.loads(text[start : end + 1])
-        except json.JSONDecodeError:
-            return None
-    return None
+def _keyword_classify(user_input: str) -> str | None:
+    """Heuristic fallback: scan for tool-related keywords."""
+    words = set(re.findall(r"[a-z_]{3,}", user_input.lower()))
+    best_type, best_count = None, 0
+    for task_type, keywords in _KEYWORD_OVERRIDES.items():
+        count = sum(1 for kw in keywords if kw in words)
+        if count > best_count:
+            best_type, best_count = task_type, count
+    return best_type if best_count >= 2 else None
 
 
 def classify_input(state: dict, client: OllamaClient, prompts: PromptBank) -> dict:
@@ -45,23 +45,25 @@ def classify_input(state: dict, client: OllamaClient, prompts: PromptBank) -> di
     )
     media = state.get("media") or {}
 
-    result = {
-        "task_type": "unknown",
-        "confidence": 0.0,
-    }
+    task_type = "unknown"
     try:
         resp = client.invoke("router", prompts.build_classifier(last_user))
-        parsed = _extract_json(resp["content"])
-        if parsed and isinstance(parsed.get("task_type"), str):
-            result["task_type"] = parsed["task_type"] if parsed["task_type"] in VALID_TASK_TYPES else "unknown"
-            result["confidence"] = float(parsed.get("confidence", 0.0))
-        log.debug("classify=%s conf=%.2f", result["task_type"], result["confidence"])
+        classification = parse_task_classification(resp["content"])
+        task_type = classification.task_type
+        log.debug("classify=%s conf=%.2f", task_type, classification.confidence)
     except Exception as exc:  # noqa: BLE001
         log.error("classifier failed, defaulting to unknown: %s", exc)
-        result["task_type"] = "unknown"
+        task_type = "unknown"
 
-    update = {"task_type": result["task_type"]}
+    # keyword fallback when router is too small to classify correctly
+    if task_type == "unknown":
+        kw_type = _keyword_classify(last_user)
+        if kw_type:
+            log.info("keyword fallback: unknown -> %s", kw_type)
+            task_type = kw_type
+
+    update = {"task_type": task_type}
     if media.get("type") == "image" or (media and isinstance(media, dict) and media.get("path")):
-        update["task_type"] = "image_analysis" if media.get("type") == "image" else result["task_type"]
+        update["task_type"] = "image_analysis" if media.get("type") == "image" else task_type
         update["media"] = media
     return update

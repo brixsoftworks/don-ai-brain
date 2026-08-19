@@ -4,9 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0a0002">
+<meta name="description" content="DON — your fully-local personal AI agent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>DON</title>
 <link rel="stylesheet" href="style.css">
 <link rel="icon" href="emblem.svg">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 </head>
 <body class="state-idle">
   <main id="overlay">
@@ -14,26 +22,29 @@
     <section id="emblem">
       <img src="emblem.svg" alt="DON emblem" id="glyph">
       <p id="statuschip">idle</p>
+      <p id="modelchip" class="hidden"></p>
     </section>
 
-    <canvas id="waveform" width="600" height="64"></canvas>
+    <canvas id="waveform" width="600" height="64" aria-hidden="true"></canvas>
 
-    <section id="transcript" aria-live="polite"></section>
+    <section id="transcript" aria-live="polite" aria-label="conversation transcript"></section>
 
-    <section id="toolline" class="hidden"></section>
+    <section id="toolline" class="hidden" aria-live="polite"></section>
 
-    <section id="approvalcard" class="hidden" role="dialog" aria-label="approval required">
+    <section id="approvalcard" class="hidden" role="dialog" aria-modal="true" aria-label="approval required">
       <p id="approval-title">DON wants to take action.</p>
       <ul id="approval-actions"></ul>
       <div id="approval-buttons">
-        <button id="btn-approve" class="approve">Approve</button>
-        <button id="btn-reject" class="reject">Reject</button>
+        <button id="btn-approve" class="approve" aria-label="approve action">Approve</button>
+        <button id="btn-reject" class="reject" aria-label="reject action">Reject</button>
       </div>
     </section>
 
-    <form id="textbar" autocomplete="off">
-      <input id="textinput" type="text" placeholder="type to DON…" maxlength="2000" aria-label="message">
-      <button type="submit" id="sendbtn">▶</button>
+    <form id="textbar" autocomplete="off" role="search">
+      <button id="micbtn" type="button" aria-label="toggle voice input" title="Hold to speak">🎤</button>
+      <input id="textinput" type="text" placeholder="type to DON…" maxlength="2000"
+             aria-label="message to DON" autocomplete="off" spellcheck="false">
+      <button type="submit" id="sendbtn" aria-label="send message">▶</button>
     </form>
 
   </main>

@@ -1,0 +1,29 @@
+# Ingestion pipeline config.
+# docs/component-7 §9, docs/component-8 §5, docs/component-9 §7.
+
+ingest:
+  watched_folders:
+    - ~/jarvishome/notes
+    - ~/jarvishome/inbox
+  full_sweep_cron: "0 2 * * *"       # nightly at 02:00
+  chat_export_cron: "30 2 * * *"     # nightly at 02:30
+  debounce_seconds: 2
+  ocr_enabled: true
+  doclining_num_threads: 4
+
+split:
+  default:
+    chunk_size: 1000
+    chunk_overlap: 150
+  markdown:
+    chunk_size: 800
+    chunk_overlap: 100
+  code:
+    chunk_size: 500
+    chunk_overlap: 50
+  chat:
+    max_reply_tokens: 500
+
+embed:
+  batch_size: 32
+  concurrency: 1

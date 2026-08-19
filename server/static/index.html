@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DON Cloud</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; background: #121212; color: #fff; margin: 0; padding: 20px; }
+        .chat-container { max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; height: 90vh; }
+        .messages { flex: 1; overflow-y: auto; padding: 10px; background: #1e1e1e; border-radius: 10px; margin-bottom: 20px; }
+        .msg { margin: 10px 0; padding: 10px; border-radius: 8px; width: fit-content; max-width: 80%; }
+        .msg.user { background: #007aff; align-self: flex-end; margin-left: auto; }
+        .msg.bot { background: #333; }
+        .input-area { display: flex; gap: 10px; }
+        input { flex: 1; padding: 12px; border-radius: 8px; border: none; background: #333; color: #fff; }
+        button { padding: 12px 20px; border-radius: 8px; border: none; background: #007aff; color: #fff; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <h2>DON Cloud</h2>
+        <div class="messages" id="msgs">
+            <div class="msg bot">Hello! I am DON. Send me a task to execute on your laptop!</div>
+        </div>
+        <div class="input-area">
+            <input type="text" id="prompt" placeholder="Message DON..." onkeypress="if(event.key === 'Enter') send()">
+            <button onclick="send()">Send</button>
+        </div>
+    </div>
+    <script>
+        async function send() {
+            const input = document.getElementById('prompt');
+            const text = input.value;
+            if (!text) return;
+            
+            addMsg(text, 'user');
+            input.value = '';
+            
+            const res = await fetch('/chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({message: text})
+            });
+            const data = await res.json();
+            addMsg(data.reply, 'bot');
+        }
+        
+        function addMsg(text, type) {
+            const msgs = document.getElementById('msgs');
+            const div = document.createElement('div');
+            div.className = 'msg ' + type;
+            div.textContent = text;
+            msgs.appendChild(div);
+            msgs.scrollTop = msgs.scrollHeight;
+        }
+    </script>
+</body>
+</html>

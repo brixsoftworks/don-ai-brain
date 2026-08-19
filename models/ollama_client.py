@@ -124,7 +124,10 @@ class OllamaClient:
                     "model": candidate.name,
                     "messages": normalized,
                     "keep_alive": candidate.keep_alive,
-                    "options": {"temperature": temperature if temperature is not None else candidate.temperature},
+                    "options": {
+                        "temperature": temperature if temperature is not None else candidate.temperature,
+                        "num_ctx": 16384
+                    },
                 }
                 if candidate.max_tokens:
                     payload["options"]["num_predict"] = candidate.max_tokens

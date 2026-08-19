@@ -1,0 +1,27 @@
+# Text splitter config per document type.
+# docs/component-8 §5. Tune without code changes.
+
+splitters:
+  default:
+    type: recursive
+    chunk_size: 1000
+    chunk_overlap: 150
+  markdown:
+    type: markdown_header
+    chunk_size: 800
+    chunk_overlap: 100
+  code:
+    type: token
+    chunk_size: 500
+    chunk_overlap: 50
+  html:
+    type: html_header
+    chunk_size: 1000
+    chunk_overlap: 100
+  csv:
+    type: row
+  json:
+    type: row
+  chat:
+    type: chat_turn
+    max_reply_tokens: 500

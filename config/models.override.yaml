@@ -1,7 +1,4 @@
-# DEV/TEST override — NEVER used in production.
-# Points every department at one tiny model so the graph can be exercised
-# on a laptop without downloading the full 8 GB model set.
-# Production on the A1 uses config/models.yaml.
+# models.override.yaml — use locally available models
 router:
   name: qwen2.5:0.5b
   keep_alive: -1
@@ -12,37 +9,44 @@ router:
 main:
   name: qwen2.5-coder:7b
   keep_alive: -1
-  temperature: 0.2
+  temperature: 0.7
   max_tokens: 4096
   fallback: [router]
 
 coder:
-  name: qwen2.5:0.5b
+  name: qwen2.5-coder:7b
   keep_alive: 300
   temperature: 0.2
-  max_tokens: 4096
+  max_tokens: 8192
   fallback: [main, router]
 
 reasoner:
-  name: qwen2.5:0.5b
+  name: qwen2.5-coder:7b
   keep_alive: 300
   temperature: 0.6
-  max_tokens: 4096
+  max_tokens: 8192
   fallback: [main, router]
 
 vision:
-  name: qwen2.5:0.5b
+  name: moondream:latest
   keep_alive: 300
   temperature: 0.3
   max_tokens: 4096
   fallback: [main, router]
+
+screen_agent:
+  name: ui-tars:2b
+  keep_alive: 300
+  temperature: 0.6
+  max_tokens: 512
+  fallback: [vision]
 
 embeddings:
   name: qwen3-embedding:0.6b
   keep_alive: -1
   temperature: 0
   max_tokens: null
-  fallback: [nomic-embed-text:latest]
+  fallback: [nomic-embed-text]
 
 routing:
   quick_query: main
@@ -61,4 +65,5 @@ routing:
   image_analysis: vision
   screen_capture: vision
   camera_view: vision
+  screen: screen
   unknown: main

@@ -15,7 +15,7 @@ class ToolSpec(BaseModel):
 
     name: str
     description: str
-    args_schema: type[BaseModel] | None = None
+    args_schema: type[BaseModel] | dict | None = None
     danger: Literal["read", "action", "destructive"] = "read"
     source: str = "custom"
     enabled: bool = True

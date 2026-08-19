@@ -22,9 +22,17 @@ DANGER_LABEL = {"read": "INFO", "action": "ACTION", "destructive": "DESTRUCTIVE"
 
 
 def _pending_calls(state: dict) -> list[dict]:
+    """Return tool_calls from the MOST RECENT AIMessage only.
+
+    Scanning the full history causes re-approval loops because old AIMessages
+    with tool_calls persist in state even after execution.
+    """
     for m in reversed(state.get("messages", [])):
-        if isinstance(m, AIMessage) and getattr(m, "tool_calls", None):
-            return list(m.tool_calls)
+        if isinstance(m, AIMessage):
+            if getattr(m, "tool_calls", None):
+                return list(m.tool_calls)
+            # found an AIMessage without tool_calls — stop scanning
+            break
     return []
 
 
@@ -37,6 +45,12 @@ def guard(state: dict, prompts: PromptBank, registry: ToolRegistry) -> dict:
     calls = _pending_calls(state)
     if not calls:
         return {"approved_calls": {}}
+
+    # skip tool calls that were already processed (prevents re-approval loop)
+    processed = set(state.get("processed_tool_calls", []))
+    calls = [c for c in calls if c.get("id", "") not in processed]
+    if not calls:
+        return {"approved_calls": {}, "processed_tool_calls": sorted(processed)}
 
     actions = []
     for c in calls:
@@ -71,10 +85,17 @@ def guard(state: dict, prompts: PromptBank, registry: ToolRegistry) -> dict:
 
     approved: dict[str, bool] = {}
     rejected = list(state.get("cannot_use", []))
+    newly_processed = set(state.get("processed_tool_calls", []))
     for call, ok in zip(calls, decisions):
-        approved[call.get("id", "")] = bool(ok)
+        call_id = call.get("id", "")
+        approved[call_id] = bool(ok)
+        newly_processed.add(call_id)
         if not ok and call.get("name"):
             rejected.append(call["name"])
     log.info("guard: %d approved / %d rejected", sum(1 for d in decisions if d), sum(1 for d in decisions if not d))
 
-    return {"approved_calls": approved, "cannot_use": sorted(set(rejected))}
+    return {
+        "approved_calls": approved,
+        "cannot_use": sorted(set(rejected)),
+        "processed_tool_calls": sorted(newly_processed),
+    }

@@ -33,7 +33,7 @@ class BigToolRetriever:
         registry: ToolRegistry,
         vs: VectorStore | None = None,
         embedder: Embedder | None = None,
-        k: int = 6,
+        k: int = 15,
     ):
         self.client = client
         self.registry = registry
@@ -90,28 +90,46 @@ class BigToolRetriever:
             self.seed()
         keywords = self._keywords(query)
 
+        # Always include tools explicitly named in the query
+        all_names = {s.name for s in self.registry.enabled_specs()}
+        explicit = [n for n in all_names if n in query.lower()]
+        remaining_k = k - len(explicit)
+
+        semantic: list[str] = []
         if self.vs is not None and self.embedder is not None:
             try:
                 qvec = self.embedder.embed_query(query)
-                hits = self.vs.search("tools", qvec, k=k * 2)
+                hits = self.vs.search("tools", qvec, k=remaining_k * 2)
+                if hits:
+                    boosted = sorted(
+                        hits,
+                        key=lambda h: h["score"] + 0.15 * self._keyword_score(h["id"], "", keywords),
+                        reverse=True,
+                    )
+                    semantic = [h["id"] for h in boosted[:remaining_k] if h["id"] not in explicit]
             except Exception as exc:  # noqa: BLE001
                 log.warning("bigtool search failed, keyword fallback: %s", exc)
-                hits = []
-            if hits:
-                boosted = sorted(
-                    hits,
-                    key=lambda h: h["score"] + 0.15 * self._keyword_score(h["id"], "", keywords),
-                    reverse=True,
-                )
-                return [h["id"] for h in boosted[:k]]
+        else:
+            specs = self.registry.enabled_specs()
+            scored = sorted(
+                specs,
+                key=lambda s: self._keyword_score(s.name, s.description, keywords),
+                reverse=True,
+            )
+            semantic = [s.name for s in scored[:remaining_k] if s.name not in explicit]
 
-        specs = self.registry.enabled_specs()
-        scored = sorted(
-            specs,
-            key=lambda s: self._keyword_score(s.name, s.description, keywords),
-            reverse=True,
-        )
-        return [s.name for s in scored[:k]]
+        # Always inject essential primitives to ensure agent doesn't get stuck without them
+        base_tools = {
+            "screen_vision", "mouse_click", "type_text", "open_url", "key_press",
+            "browser_start", "browser_execute", "browser_close", "web_search",
+            "file_write", "file_read", "search_memory"
+        }
+        final_list = explicit + semantic
+        for base in base_tools:
+            if base in all_names and base not in final_list:
+                final_list.append(base)
+
+        return final_list
 
     def tool_injections(self, query: str, k: int | None = None) -> list[dict]:
         """Tool metadata blocks to inject into the agent prompt."""
@@ -119,7 +137,10 @@ class BigToolRetriever:
         blocks = []
         for name in names:
             spec = self.registry.get_spec(name)
-            schema = spec.args_schema.schema() if spec.args_schema else {}
+            if isinstance(spec.args_schema, dict):
+                schema = spec.args_schema
+            else:
+                schema = spec.args_schema.model_json_schema() if spec.args_schema else {}
             blocks.append({
                 "name": spec.name,
                 "description": spec.description,

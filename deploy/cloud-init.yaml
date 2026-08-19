@@ -1,0 +1,11 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+packages:
+  - docker.io
+  - docker-compose
+runcmd:
+  - systemctl enable docker
+  - systemctl start docker
+  # You will pull and run the DON Docker image here
+  - echo "DON Oracle Cloud instance initialized successfully!" > /var/log/don-init.log

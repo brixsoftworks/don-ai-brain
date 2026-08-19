@@ -1,0 +1,9 @@
+# Tracing config.
+# docs/component-14.
+
+trace:
+  enabled: true
+  retention_days: 30
+  rollup_retention_days: 365
+  flush_interval_seconds: 2
+  flush_size: 100

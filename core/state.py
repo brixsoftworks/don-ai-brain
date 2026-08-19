@@ -24,6 +24,7 @@ class AgentState(TypedDict, total=False):
     tool_results: list                       # outputs fed back to LLM
     tool_blacklist: list                     # tools disabled this conversation
     approved_calls: dict                     # {tool_call_id: bool} from guard
+    processed_tool_calls: list               # tool_call_ids already seen by guard
     cannot_use: list                         # tools the operator rejected (re-plan)
     pending_action: dict                     # {tool, args, reason} for guard
     iterations: int                          # loop counter (circuit breaker)

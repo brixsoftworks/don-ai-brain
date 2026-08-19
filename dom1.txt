@@ -1,0 +1,242 @@
+<body>
+  <div don-id="el-1" id="mount_0_0_I4">
+    <div>
+      <div id="app">
+        <div>
+          <div>
+            <div id="wa-popovers-bucket">
+            <span>
+            <span>
+            <span>
+            <span>
+            <span>
+            <div id="expressions-panel-container">
+            <span>
+            <span>
+            <div>
+              <div>
+                <header>
+                  <div>
+                    <div>
+                      <div>
+                        <div>
+                          <span>
+                            <div>
+                              <button don-id="el-2" aria-label="Chats">
+                                <div>
+                                  <div>
+                                    <div>
+                                      <span>
+                                        <svg>
+                                          <title>
+                                            wds-ic-chat-filled
+                                          <path>
+                                    <div>
+                              <div>
+                                <span role="status">
+                                  <span>
+                                    17
+                        <div>
+                          <span>
+                            <div>
+                              <button don-id="el-3" aria-label="Calls">
+                                <div>
+                                  <div>
+                                    <div>
+                                      <span>
+                                        <svg>
+                                          <title>
+                                            ic-call
+                                          <path>
+                                    <div>
+                              <div>
+                                <span role="status">
+                                  <span>
+                                    3
+                        <div>
+                          <span>
+                            <div>
+                              <button don-id="el-4" aria-label="Status">
+                                <div>
+                                  <div>
+                                    <div>
+                                      <span>
+                                        <svg>
+                                          <title>
+                                            wds-ic-status
+                                          <path>
+                                          <path>
+                                    <div>
+                              <div>
+                                <span role="status">
+                                  <div>
+                                    Updates in Status
+                        <div>
+                          <span>
+                            <div>
+                              <button don-id="el-5" aria-label="Channels">
+                                <div>
+                                  <div>
+                                    <div>
+                                      <span>
+                                        <svg>
+                                          <title>
+                                            wds-ic-channels
+                                          <path>
+                                          <path>
+                                          <path>
+                                    <div>
+                              <div>
+                                <span role="status">
+                        <div>
+                          <span>
+                            <div>
+                              <button don-id="el-6" aria-label="Communities">
+                                <div>
+                                  <div>
+                                    <div>
+                                      <span>
+                                        <svg>
+                                          <title>
+                                            wds-ic-communities
+                                          <path>
+                                    <div>
+                        <hr>
+                        <div>
+                          <span>
+                            <div>
+                              <button don-id="el-7" aria-label="Meta AI">
+                                <img>
+                    <div>
+                      <div>
+                        <div>
+                          <span>
+                            <div>
+                              <button don-id="el-8" aria-label="Media">
+                                <div>
+                                  <div>
+                                    <div>
+                                      <span>
+                                        <svg>
+                                          <title>
+                                            ic-filter
+                                          <path>
+                                    <div>
+                        <div>
+                          <span>
+                            <div>
+                              <button don-id="el-9" aria-label="You">
+                                <div>
+                                  <img>
+                <div>
+                  <span>
+                <div>
+                  <div>
+                    <div>
+                      <span>
+                  <div>
+                    <div>
+                      <span>
+                <div>
+                  <header>
+                    <header>
+                      <div>
+                        <div>
+                          <h2>
+                            <span>
+                              <span>
+                                <span>
+                                  <span aria-label="WhatsApp">
+                                    <svg>
+                                      <title>
+                                        wa-wordmark
+                                      <path>
+                        <span>
+                          <div>
+                            <div>
+                              <span>
+                                <div>
+                                  <button don-id="el-10" aria-label="New chat">
+                                    <div>
+                                      <div>
+                                        <div>
+                                          <span>
+                                            <svg>
+                                              <title>
+                                                new-chat-outline
+                                              <path>
+                                              <path>
+                                        <div>
+                            <div>
+                              <span>
+                                <button don-id="el-11" aria-label="Menu">
+                                  <div>
+                                    <div>
+                                      <div>
+                                        <span>
+                                          <svg>
+                                            <title>
+                                              ic-more-vert
+                                            <path>
+                                      <div>
+                  <div id="side">
+                    <div>
+                      <div>
+                        <div>
+                          <div>
+                            <div>
+                              <div>
+                                <div>
+                                  <div>
+                                    <span>
+                                      <svg>
+                                        <title>
+                                          ic-search
+                                        <path>
+                                  <div>
+                                    <input don-id="el-12" id="_r_a_" placeholder="Search or start a new chat" aria-label="Search or start a new chat" role="textbox">
+                      <div>
+                        <span>
+                    <div aria-label="chat-list-filters" role="tablist">
+                      <div>
+                        <div role="none">
+                          <span>
+                            <button don-id="el-13" id="all-filter" role="tab">
+                              <div>
+                                <div>
+                                  <div>
+                                    <span title="All">
+                                      <span>
+                                        <span>
+                                          <span>
+                                            All
+                      <div>
+                        <div role="none">
+                          <span>
+                            <button don-id="el-14" id="label_item_1" role="tab">
+                              <div>
+                                <div>
+                                  <div>
+                                    <span title="Unread">
+                                      <span>
+                                        <span>
+                                          <span>
+                                            Unread
+                                  <div>
+                                    <span>
+                                      17
+                      <div>
+                        <div role="none">
+                          <span>
+                            <button don-id="el-15" id="label_item_2" role="tab">
+                              <div>
+                                <div>
+                                  <div>
+                                    <span title="Favourites">
+                                      <span>
+                                        <span>
+                                          <span>
+                                            Favourites
+                      <div>
+  
+... [DOM TRUNCATED]

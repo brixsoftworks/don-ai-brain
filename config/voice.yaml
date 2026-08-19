@@ -1,0 +1,24 @@
+# Voice pipeline config.
+# docs/component-15.
+
+wake:
+  model_path: "models/wake/hey_don.onnx"
+  threshold: 0.5
+
+vad:
+  sample_rate: 16000
+  threshold: 0.5
+  silence_duration_ms: 600
+
+stt:
+  model: "small"
+  binary_path: "whisper-cli"
+  threads: 4
+  language: "en"
+
+tts:
+  voice: "am_eric"
+  speed: 0.88
+  sample_rate: 24000
+  # voice options: am_eric, am_onyx, am_adam (deep male voices)
+  # speed 0.85-0.90 = DON's calm villain timbre

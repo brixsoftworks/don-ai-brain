@@ -1,0 +1,8 @@
+# Arize Phoenix config.
+# docs/component-14 §5.
+
+phoenix:
+  enabled: true
+  host: "0.0.0.0"          # bind to tailscale interface in production
+  port: 6006
+  project_name: "don"
