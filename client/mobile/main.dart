@@ -34,7 +34,7 @@ Future<void> initializeService() async {
 void onStart(ServiceInstance service) async {
   // 1. Initialize WebSocket Connection to Oracle Cloud
   final channel = WebSocketChannel.connect(
-    Uri.parse('ws://YOUR_ORACLE_IP:8000/worker'),
+    Uri.parse('wss://don-ai-brain.onrender.com/ws/phone'),
   );
 
   // 2. Initialize Speech to Text

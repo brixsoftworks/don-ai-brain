@@ -13,7 +13,7 @@ except ImportError:
     print("Warning: openwakeword not installed correctly. Wake word will use SpeechRecognition fallback.")
     openwakeword = None
 
-CLOUD_URL = "ws://localhost:8000/worker" # Change to Oracle Cloud IP later
+CLOUD_URL = "wss://don-ai-brain.onrender.com/ws/laptop" # Now pointing to Render Cloud
 WAKE_WORD_MODEL = "hey_jarvis" # Using pre-built model for now until we train 'hey don'
 
 engine = pyttsx3.init()

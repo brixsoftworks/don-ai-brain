@@ -5,10 +5,11 @@ import subprocess
 import os
 
 # Default to localhost for local testing, but allow overriding via environment variable
-BASE_URL = os.getenv("RENDER_URL", "ws://localhost:8000")
-# Make sure it uses wss:// if it's an https url, or ws:// if not provided correctly
+BASE_URL = os.getenv("RENDER_URL", "wss://don-ai-brain.onrender.com")
 if BASE_URL.startswith("http://"):
     BASE_URL = BASE_URL.replace("http://", "ws://")
+elif BASE_URL.startswith("https://"):
+    BASE_URL = BASE_URL.replace("https://", "wss://")
 elif BASE_URL.startswith("https://"):
     BASE_URL = BASE_URL.replace("https://", "wss://")
 

@@ -1,0 +1,47 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.24.0'
+        channel: 'stable'
+
+    - name: Scaffold App and Build
+      run: |
+        cd client/mobile
+        flutter create don_mobile --empty
+        cd don_mobile
+        cp ../main.dart lib/main.dart
+        flutter pub add flutter_background_service
+        flutter pub add speech_to_text
+        flutter pub add web_socket_channel
+        
+        # Add permissions
+        MANIFEST="android/app/src/main/AndroidManifest.xml"
+        sed -i '/<application/i \    <uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.RECORD_AUDIO"/>\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>\n    <uses-permission android:name="android.permission.WAKE_LOCK"/>' $MANIFEST
+        
+        # Build APK
+        flutter build apk --release
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v3
+      with:
+        name: DON-Mobile-App
+        path: client/mobile/don_mobile/build/app/outputs/flutter-apk/app-release.apk
