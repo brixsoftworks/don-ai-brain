@@ -32,10 +32,12 @@ jobs:
         flutter pub add flutter_background_service
         flutter pub add speech_to_text:6.6.0
         flutter pub add web_socket_channel
+        flutter pub add permission_handler
         
         # Add permissions
         MANIFEST="android/app/src/main/AndroidManifest.xml"
-        sed -i '/<application/i \    <uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.RECORD_AUDIO"/>\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>\n    <uses-permission android:name="android.permission.WAKE_LOCK"/>' $MANIFEST
+        sed -i '/<application/i \    <uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.RECORD_AUDIO"/>\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE"/>\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <uses-permission android:name="android.permission.WAKE_LOCK"/>' $MANIFEST
+        sed -i '/<\/application>/i \        <service android:name="id.flutter.flutter_background_service.BackgroundService" android:foregroundServiceType="microphone" \/>' $MANIFEST
         
         # Fix Kotlin version conflicts
         find android -type f \( -name "settings.gradle" -o -name "build.gradle" \) -exec sed -i 's/ext.kotlin_version = .*/ext.kotlin_version = '"'"'1.9.0'"'"'/g' {} +
